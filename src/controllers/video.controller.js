@@ -10,22 +10,52 @@
 import mongoose from "mongoose";
 // TODO: import the Video model once video.model.js exports it:
 // import { Video } from "../models/video.model.js";
+import Video from "../models/video.model.js";
 
 // ---- TASK 2: CRUD ----------------------------------------------------------
 
 // CREATE  ->  201 with the created video
 export async function createVideo(req, res, next) {
   // TODO: try { create from req.body; res.status(201).json(video) } catch { next(err) }
+  try {
+const video = await Video.create(req.body);
+return res.status(201).json(video);
+} catch (err) {
+return next(err);
+}
 }
 
 // READ ONE  ->  200 with the video, or 404 if not found
 export async function getVideo(req, res, next) {
   // TODO: findById(req.params.id); if missing return 404; else res.json(video)
+  try {
+
+const video = await Video.findById(req.params.id);
+if (!video) {
+return res.status(404).json({
+message: "Video not found",
+});
+}
+return res.status(200).json(video);
+} catch (err) {
+return next(err);
+}
 }
 
 // DELETE  ->  204 no content, or 404 if not found
 export async function deleteVideo(req, res, next) {
   // TODO: findByIdAndDelete(req.params.id); if missing return 404; else res.status(204).send()
+  try {
+const video = await Video.findByIdAndDelete(req.params.id);
+if (!video) {
+return res.status(404).json({
+message: "Video not found",
+});
+}
+return res.status(204).send();
+} catch (err) {
+return next(err);
+}
 }
 
 // ---- TASK 3: AGGREGATION ---------------------------------------------------
@@ -45,4 +75,37 @@ export async function topVideos(req, res, next) {
   //   const videos = await Video.aggregate([ ...four stages... ]);
   //   res.json({ channelId: req.params.id, count: videos.length, videos });
   // } catch (err) { next(err); }
+  try {
+const channelObjectId = new mongoose.Types.ObjectId(req.params.id);
+const videos = await Video.aggregate([
+{
+$match: {
+channelId: channelObjectId,
+},
+},
+{
+$sort: {
+views: -1,
+},
+},
+{
+$limit: 10,
+},
+{
+$project: {
+_id: 0,
+title: 1,
+views: 1,
+},
+},
+]);
+return res.status(200).json({
+channelId: req.params.id,
+
+count: videos.length,
+videos,
+});
+} catch (err) {
+return next(err);
+}
 }
